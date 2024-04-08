@@ -3,17 +3,56 @@ package main
 import (
 	"bufio"
 	"crypto/sha256"
+	"flag"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
+	"strings"
 )
 
 func main() {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 
-	images := []string{"image_1.jpg", "image_2.jpg", "image_3.jpg"}
-	hashes := make([]string, len(images))
+	// Ajout du flag pour passer une liste d'URLs en argument
+	urlsFlag := flag.String("urls", "", "Liste d'URLs séparées par des virgules")
+	flag.Parse()
 
+	// Parsing de la chaîne d'URLs
+	var urls []string
+	if *urlsFlag != "" {
+		urls = strings.Split(*urlsFlag, ",")
+	}
+
+	// Téléchargement des images depuis les URLs
+	images := []string{}
+	for i, url := range urls {
+		resp, err := http.Get(url)
+		if err != nil {
+			logger.Printf("Erreur lors du téléchargement de %s : %v\n", url, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logger.Printf("Erreur lors de la lecture de %s : %v\n", url, err)
+			continue
+		}
+
+		// Écriture de l'image sur le disque
+		filename := fmt.Sprintf("image_%d.jpg", i+1)
+		err = os.WriteFile(filename, data, 0644)
+		if err != nil {
+			logger.Printf("Erreur lors de l'écriture de %s : %v\n", filename, err)
+			continue
+		}
+
+		images = append(images, filename)
+	}
+
+	hashes := make([]string, len(images))
 	for i := 0; i < len(images); i++ {
 		file, err := os.Open(images[i])
 		if err != nil {
