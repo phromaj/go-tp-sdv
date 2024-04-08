@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 func downloadImages(urls []string, logger *log.Logger) []string {
 	images := []string{}
 	for i, url := range urls {
+		startTime := time.Now()
 		resp, err := http.Get(url)
 		if err != nil {
 			logger.Printf("Erreur lors du téléchargement de %s : %v\n", url, err)
@@ -34,6 +36,9 @@ func downloadImages(urls []string, logger *log.Logger) []string {
 			logger.Printf("Erreur lors de l'écriture de %s : %v\n", filename, err)
 			continue
 		}
+
+		elapsedTime := time.Since(startTime)
+		fmt.Printf("Téléchargement de %v terminé en %v\n", url, elapsedTime)
 
 		images = append(images, filename)
 	}
@@ -90,7 +95,11 @@ func main() {
 		urls = strings.Split(*urlsFlag, ",")
 	}
 
+	startTime := time.Now()
 	images := downloadImages(urls, logger)
+	elapsedTime := time.Since(startTime)
+	fmt.Printf("Téléchargement de toutes les images terminé en %v\n", elapsedTime)
+
 	hashes := calculateHashes(images, logger)
 
 	uniqueImage := findUniqueImage(images, hashes)
