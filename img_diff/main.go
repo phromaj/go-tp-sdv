@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"fmt"
 	"os"
@@ -11,15 +12,23 @@ func main() {
 	hashes := make([]string, len(images))
 
 	for i := 0; i < len(images); i++ {
-		data, err := os.ReadFile(images[i])
+		file, err := os.Open(images[i])
+		if err != nil {
+			fmt.Printf("Erreur lors de l'ouverture de %s : %v\n", images[i], err)
+			return
+		}
+		defer file.Close()
+
+		reader := bufio.NewReader(file)
+		hash := sha256.New()
+
+		_, err = reader.WriteTo(hash)
 		if err != nil {
 			fmt.Printf("Erreur lors de la lecture de %s : %v\n", images[i], err)
 			return
 		}
 
-		hash := fmt.Sprintf("%x", sha256.Sum256(data))
-		fmt.Printf("Hash de %s : %s\n", images[i], hash)
-		hashes[i] = hash
+		hashes[i] = fmt.Sprintf("%x", hash.Sum(nil))
 	}
 
 	var uniqueImage string
@@ -31,7 +40,6 @@ func main() {
 				break
 			}
 		}
-
 		if !isDuplicate {
 			uniqueImage = images[i]
 			break
